@@ -69,7 +69,7 @@ class Environment:
         self.potential_value = self.potential_function()
         reward = self.potential_value - last_potential_value + self.step_cost
         self.nash_eq = self.is_NE()
-        return self.state,reward,self.nash_eq
+        return tuple(self.state),reward,self.nash_eq
 
 
     def reset(self):
@@ -80,7 +80,7 @@ class Environment:
         self.potential_value = self.potential_function()
         self.nash_eq = self.is_NE()
         self.iteration()
-        return self.state,self.nash_eq
+        return tuple(self.state),self.nash_eq
 
     def iteration(self):
         if self.nash_eq == True:
