@@ -73,13 +73,14 @@ class Environment:
 
 
     def reset(self):
-        #Edges: dictionary to know how many agents are using every edge
-        self.Edges = self.initialize_edges(self.graph)
+        self.nash_eq = False
         self.state = [0] * len(list(self.edge_list))
-        self.initialize_agents()
+        self.reset_agents()
+        #Edges: dictionary to know how many agents are using every edge
+        self.Edges = self.reset_edges(self.graph)
+        self.iteration()
         self.potential_value = self.potential_function()
         self.nash_eq = self.is_NE()
-        self.iteration()
         return tuple(self.state),self.nash_eq
 
     def iteration(self):
@@ -97,9 +98,20 @@ class Environment:
         self.evaluate_totalcost()
         self.cost_by_iteration.append(self.total_cost)
 
-    def initialize_agents(self):
-        self.edges_used = {}
+
+    def reset_agents(self):
+        self.cost_by_iteration = []
         for ag in self.agents:
+            ag.edges_used = {}
+            ag.path = []
+            ag.cost = 0 if ag.index == self.source else float('inf')
+            ag.cost_by_iteration = []
+        self.evaluate_totalcost()
+
+    # function for simulator (agents already could have paths)
+    def initialize_agents(self):
+        for ag in self.agents:
+            ag.edges_used = {}
             l = len(ag.path)
             for i in range(0,l-1):
                 u = min(ag.path[i],ag.path[i + 1])
@@ -153,6 +165,15 @@ class Environment:
                 j = max(u,v)
                 self.edge_dict[(i,j)] = i
                 self.edge_list.append((i,j))
+                Edges[(i,j)] = (w,0)
+        return Edges
+
+    def reset_edges(self,graph):
+        Edges = {}
+        for u in range(graph.nodes):
+            for v,w in graph.adj[u]:
+                i = min(u,v)
+                j = max(u,v)
                 Edges[(i,j)] = (w,0)
         return Edges
 

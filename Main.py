@@ -44,7 +44,7 @@ def q_value(Q,s,a):
         return Q[s][a]
 
 if __name__ == '__main__':
-    agents, source, g = set_graph("Examples/12.10_paths",paths = True)
+    agents, source, g = set_graph("Examples/12.8a",paths = True)
     brd = Environment(g,agents,source,step_cost = 100)
 
     n_edges = len(brd.edge_list)
@@ -62,12 +62,14 @@ if __name__ == '__main__':
             s2,r,done = brd.step(a)
             old_q = q_value(Q,s,a)
             a2,minQ = min_dic(Q,s2)
-            TD = r + GAMMA * minQ - old_q # Q-Learning aproach
+            TD = r + GAMMA * minQ - old_q # Q-Learning approach
             Q[s][a] = old_q + ALPHA * TD
 
 
     #FOLLOWING THE BEST POLICY
     s,done = brd.reset()
+    print(s)
+    print(done)
     print_paths(brd)
     while not done:
         a,_ = min_dic(Q,s)
