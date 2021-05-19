@@ -65,15 +65,15 @@ if __name__ == '__main__':
             TD = r + GAMMA * minQ - old_q # Q-Learning approach
             Q[s][a] = old_q + ALPHA * TD
 
-
     #FOLLOWING THE BEST POLICY
     s,done = brd.reset()
-    print(s)
     print(done)
     print_paths(brd)
+    brd.render()
     while not done:
         a,_ = min_dic(Q,s)
         s,r,done = brd.step(a)
+        brd.render()
         print_paths(brd)
 
 

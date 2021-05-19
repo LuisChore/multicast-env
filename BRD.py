@@ -15,6 +15,7 @@ class Environment:
     def __init__(self,graph,agents,source,alpha = 0.9,step_cost = 1):
         self.nash_eq = False # done variable
         self.alpha = alpha
+        self.start = False
         self.step_cost = step_cost
         self.source = source
         self.W,self.H = 12,8
@@ -34,6 +35,7 @@ class Environment:
         self.Edges = self.initialize_edges(graph)
         #create state (also needed for  BRD altough is always 0)
         self.state = [0] * len(list(self.edge_list))
+        self.episode_iterations = 0
         self.harmonic = self.process_harmonic(len(agents))
         self.initialize_agents()
 
@@ -74,6 +76,7 @@ class Environment:
 
     def reset(self):
         self.nash_eq = False
+        self.episode_iterations = 0
         self.state = [0] * len(list(self.edge_list))
         self.reset_agents()
         #Edges: dictionary to know how many agents are using every edge
@@ -86,6 +89,7 @@ class Environment:
     def iteration(self):
         if self.nash_eq == True:
             return
+        self.episode_iterations += 1
         np.random.shuffle(self.agents)
         change = False
         for ag in self.agents:
@@ -214,6 +218,27 @@ class Environment:
         message = "Nash Equilibrium" if self.nash_eq else "Next Step"
         self.bnext = Button(axnext, message)
         self.bnext.on_clicked(self.next_function)
+
+    def render(self, W = 6, H = 5):
+        if self.start == False:
+            self.start = True
+            self.figEnv = plt.figure(figsize = (W,H))
+            plt.ion()
+        else:
+            plt.clf()
+        self.figEnv.canvas.set_window_title(f"It  {int(self.episode_iterations)}: {self.total_cost}")
+        pos = nx.planar_layout(self.graphx)
+        nx.draw(self.graphx,pos,with_labels = True)
+        edge_labels = dict([((u,v,), f"{d['weight']:.2f}") for u,v,d in self.graphx.edges(data=True)])
+        #edge_labels = nx.get_edge_attributes(self.graphx,'weight')
+        nx.draw_networkx_edge_labels(self.graphx,pos,edge_labels = edge_labels)
+
+        for ag in self.agents:
+            nx.draw_networkx_edges(self.graphx, pos,edgelist = ag.get_path(),width=4,
+            alpha=0.5, edge_color=ag.color, style='dashed',label = ag.index)
+        plt.show()
+        plt.pause(2)
+        plt.draw()
 
     def plot_paths(self):
         fgraph = self.fig.add_subplot(self.gs[0:2,:])
