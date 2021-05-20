@@ -8,14 +8,16 @@ import numpy as np
 from Agent import Agent
 from Graph import Graph
 import queue
+import copy
 
 class Environment:
-    def __init__(self,graph,agents,source,alpha = 0.9,step_cost = 1):
+    def __init__(self,graph,agents,source,alpha = 0.9,step_cost = 1,paths_given = False):
         self.nash_eq = False # done variable
         self.alpha = alpha # for action values
         self.start = False # to initialize the graphics
         self.step_cost = step_cost # for the reward
         self.W,self.H = 12,8
+        self.paths_given = paths_given
         colors = ['blue','red','green','orange','cyan','black','pink','magenta']
         self.cost_by_iteration = []
         self.total_cost = float("inf")
@@ -26,6 +28,9 @@ class Environment:
         for ag in self.agents:
             ag.set_color(colors[iterator])
             iterator = (iterator + 1) % len(colors)
+
+        if paths_given == True:
+            self.agents_copy = copy.deepcopy(self.agents)
         #initialize graph
         self.graph = graph
         self.graphx = self.create_graph(graph)
@@ -88,7 +93,11 @@ class Environment:
         self.reset_agents()
         #Edges: dictionary to know how many agents are using every edge
         self.Edges = self.reset_edges()
-        self.iteration()
+        if self.paths_given == False:
+            self.iteration()
+        else:
+            self.agents = copy.deepcopy(self.agents_copy)
+            self.initialize_agents()
         self.potential_value = self.potential_function()
         self.nash_eq = self.is_NE()
         return tuple(self.state),self.nash_eq

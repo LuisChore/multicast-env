@@ -7,10 +7,11 @@ import numpy as np
 #generate_12_10("Examples/12.10_paths",0.5,5,paths = True)
 class QLearning():
 
-    def __init__(self,file_name,step_cost = 100,alpha = 0.9):
-        self.agents,self.source,self.g = set_graph(file_name,paths = False)
+    def __init__(self,file_name,paths_given = False,step_cost = 100,alpha = 0.9):
+        self.paths_given = paths_given
+        self.agents,self.source,self.g = set_graph(file_name,paths = paths_given)
         self.env = Environment(self.g,self.agents,self.source,
-            step_cost = step_cost,alpha = alpha)
+            paths_given = self.paths_given,step_cost = step_cost,alpha = alpha)
         self.ACTION_SPACE_SIZE = len(self.env.edge_list) * 3
 
     def print_paths(self):
@@ -27,15 +28,14 @@ class QLearning():
                     min_key = a
                     min_value = v
             return min_key,min_value
-        return np.random.randint(self.ACTION_SPACE_SIZE),0 # again, return 0 if there is no options
-
+        return np.random.randint(self.ACTION_SPACE_SIZE),0
+        # again, return 0 if there is no options
 
     def eps_greedy(self,action):
         p = np.random.random()
         if p < (1-p):
             return action
         return np.random.randint(self.ACTION_SPACE_SIZE)
-
 
     #everyone starts in 0
     def q_value(self,Q,s,a):
@@ -49,7 +49,6 @@ class QLearning():
             Q[s] = {}
             Q[s][a] = 0
             return Q[s][a]
-
 
     def train(self,GAMMA,ALPHA,epochs):
         Q = {}
