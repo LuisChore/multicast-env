@@ -1,8 +1,6 @@
 '''
 Reinforcement Learning Environment to find a Nash Equilibrium
 '''
-
-
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button
 import networkx as nx
@@ -14,15 +12,15 @@ import queue
 class Environment:
     def __init__(self,graph,agents,source,alpha = 0.9,step_cost = 1):
         self.nash_eq = False # done variable
-        self.alpha = alpha
-        self.start = False
-        self.step_cost = step_cost
-        self.source = source
+        self.alpha = alpha # for action values
+        self.start = False # to initialize the graphics
+        self.step_cost = step_cost # for the reward
         self.W,self.H = 12,8
         colors = ['blue','red','green','orange','cyan','black','pink','magenta']
         self.cost_by_iteration = []
         self.total_cost = float("inf")
         # initialize agents
+        self.source = source # node source
         self.agents = agents
         iterator = 0
         for ag in self.agents:
@@ -32,7 +30,7 @@ class Environment:
         self.graph = graph
         self.graphx = self.create_graph(graph)
         #Edges: dictionary to know how many agents are using every edge
-        self.Edges = self.initialize_edges(graph)
+        self.Edges = self.initialize_edges()
         #create state (also needed for  BRD altough is always 0)
         self.state = [0] * len(list(self.edge_list))
         self.episode_iterations = 0
@@ -55,6 +53,7 @@ class Environment:
             value += w * self.harmonic[c]
         return value
 
+    # given an action, change the edge cost
     def modify_state(self,action:int):
         edge_index = int(action / 3) # 3 edge operations
         edge_operation = action % 3 # choose operation
@@ -73,6 +72,14 @@ class Environment:
         self.nash_eq = self.is_NE()
         return tuple(self.state),reward,self.nash_eq
 
+    def reset_edges(self):
+        Edges = {}
+        for u in range(self.graph.nodes):
+            for v,w in self.graph.adj[u]:
+                i = min(u,v)
+                j = max(u,v)
+                Edges[(i,j)] = (w,0)
+        return Edges
 
     def reset(self):
         self.nash_eq = False
@@ -80,11 +87,32 @@ class Environment:
         self.state = [0] * len(list(self.edge_list))
         self.reset_agents()
         #Edges: dictionary to know how many agents are using every edge
-        self.Edges = self.reset_edges(self.graph)
+        self.Edges = self.reset_edges()
         self.iteration()
         self.potential_value = self.potential_function()
         self.nash_eq = self.is_NE()
         return tuple(self.state),self.nash_eq
+
+    def render(self, W = 6, H = 5):
+        if self.start == False:
+            self.start = True
+            self.figEnv = plt.figure(figsize = (W,H))
+            plt.ion()
+        else:
+            plt.clf()
+        self.figEnv.canvas.set_window_title(f"It  {int(self.episode_iterations)}: {self.total_cost}")
+        pos = nx.planar_layout(self.graphx)
+        nx.draw(self.graphx,pos,with_labels = True)
+        edge_labels = dict([((u,v,), f"{d['weight']:.2f}") for u,v,d in self.graphx.edges(data=True)])
+        #edge_labels = nx.get_edge_attributes(self.graphx,'weight')
+        nx.draw_networkx_edge_labels(self.graphx,pos,edge_labels = edge_labels)
+
+        for ag in self.agents:
+            nx.draw_networkx_edges(self.graphx, pos,edgelist = ag.get_path(),width=4,
+            alpha=0.5, edge_color=ag.color, style='dashed',label = ag.index)
+        plt.show()
+        plt.pause(2)
+        plt.draw()
 
     def iteration(self):
         if self.nash_eq == True:
@@ -159,25 +187,16 @@ class Environment:
             cost +=  self.current_edge_cost(e)/c
         agent.cost = cost
 
-    def initialize_edges(self,graph):
+    def initialize_edges(self):
         Edges = {}
         self.edge_list = []
         self.edge_dict = {}
-        for u in range(graph.nodes):
-            for v,w in graph.adj[u]:
+        for u in range(self.graph.nodes):
+            for v,w in self.graph.adj[u]:
                 i = min(u,v)
                 j = max(u,v)
                 self.edge_dict[(i,j)] = i
                 self.edge_list.append((i,j))
-                Edges[(i,j)] = (w,0)
-        return Edges
-
-    def reset_edges(self,graph):
-        Edges = {}
-        for u in range(graph.nodes):
-            for v,w in graph.adj[u]:
-                i = min(u,v)
-                j = max(u,v)
                 Edges[(i,j)] = (w,0)
         return Edges
 
@@ -218,27 +237,6 @@ class Environment:
         message = "Nash Equilibrium" if self.nash_eq else "Next Step"
         self.bnext = Button(axnext, message)
         self.bnext.on_clicked(self.next_function)
-
-    def render(self, W = 6, H = 5):
-        if self.start == False:
-            self.start = True
-            self.figEnv = plt.figure(figsize = (W,H))
-            plt.ion()
-        else:
-            plt.clf()
-        self.figEnv.canvas.set_window_title(f"It  {int(self.episode_iterations)}: {self.total_cost}")
-        pos = nx.planar_layout(self.graphx)
-        nx.draw(self.graphx,pos,with_labels = True)
-        edge_labels = dict([((u,v,), f"{d['weight']:.2f}") for u,v,d in self.graphx.edges(data=True)])
-        #edge_labels = nx.get_edge_attributes(self.graphx,'weight')
-        nx.draw_networkx_edge_labels(self.graphx,pos,edge_labels = edge_labels)
-
-        for ag in self.agents:
-            nx.draw_networkx_edges(self.graphx, pos,edgelist = ag.get_path(),width=4,
-            alpha=0.5, edge_color=ag.color, style='dashed',label = ag.index)
-        plt.show()
-        plt.pause(2)
-        plt.draw()
 
     def plot_paths(self):
         fgraph = self.fig.add_subplot(self.gs[0:2,:])
