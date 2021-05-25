@@ -7,8 +7,9 @@ import numpy as np
 #generate_12_10("Examples/12.10_paths",0.5,5,paths = True)
 class QLearning():
 
-    def __init__(self,file_name,paths_given = False,step_cost = 100,alpha = 0.9):
+    def __init__(self,file_name,paths_given = False,step_cost = 1000,alpha = 0.9, eps = 0.1):
         self.paths_given = paths_given
+        self.eps = eps
         self.agents,self.source,self.g = set_graph(file_name,paths = paths_given)
         self.env = Environment(self.g,self.agents,self.source,
             paths_given = self.paths_given,step_cost = step_cost,alpha = alpha)
@@ -33,7 +34,7 @@ class QLearning():
 
     def eps_greedy(self,action):
         p = np.random.random()
-        if p < (1-p):
+        if p < (1-self.eps):
             return action
         return np.random.randint(self.ACTION_SPACE_SIZE)
 
@@ -50,11 +51,22 @@ class QLearning():
             Q[s][a] = 0
             return Q[s][a]
 
-    def train(self,GAMMA,ALPHA,epochs):
+    def train(self,GAMMA,ALPHA,epochs,test = False):
         Q = {}
+
+        if test == True:
+            costs = []
+            iterations = []
+            differences = []
         for e in range(epochs):
             s,done = self.env.reset()
             a,_ =  self.min_dic(Q,s)
+
+            # test purposes
+            cost_per_run = 0
+            iterations_per_run = 0
+            max_diff = 0
+
             while not done:
                 a = self.eps_greedy(a)
                 s2,r,done = self.env.step(a)
@@ -62,19 +74,32 @@ class QLearning():
                 a2,minQ = self.min_dic(Q,s2)
                 TD = r + GAMMA * minQ - old_q # Q-Learning approach
                 Q[s][a] = old_q + ALPHA * TD
+                if test == True:
+                    cost_per_run += r
+                    iterations_per_run += 1
+                    max_diff = max(max_diff,np.abs(Q[s][a] - old_q))
+            if test == True:
+                costs.append(cost_per_run)
+                iterations.append(iterations_per_run)
+                differences.append(max_diff)
 
-        return Q
+        if test == True:
+            return Q,costs,iterations,differences
+        else:
+            return Q
 
-    def test(self,Q):
+    def solve(self,Q,render = True):
         #FOLLOWING THE BEST POLICY
         s,done = self.env.reset()
-        print(done)
-        self.print_paths()
-        self.env.render()
+        if render == True:
+            self.env.render()
+        cost = 0
+        iterations = 0
         while not done:
             a,_ = self.min_dic(Q,s)
             s,r,done = self.env.step(a)
-            self.env.render()
-            self.print_paths()
-        #brd.plot_graph()
-        #brd()
+            if render == True:
+                self.env.render()
+            cost += r
+            iterations += 1
+        return cost,iterations,self.env.total_cost
