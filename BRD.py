@@ -11,9 +11,9 @@ import queue
 import copy
 
 class Environment:
-    def __init__(self,graph,agents,source,alpha = 0.99,step_cost = 1000,paths_given = False):
+    def __init__(self,graph,agents,source,beta = 0.99,step_cost = 100,paths_given = False):
         self.nash_eq = False # done variable
-        self.alpha = alpha # for action values
+        self.beta = beta # for action values
         self.start = False # to initialize the graphics
         self.step_cost = step_cost # for the reward
         self.W,self.H = 12,8
@@ -184,8 +184,8 @@ class Environment:
         if self.state[index_edge] == 0:
             return w
         elif self.state[index_edge] == 1:
-            return w + self.alpha * w
-        return w -self.alpha * w
+            return w + self.beta * w
+        return w -self.beta * w
 
     def update_agent_cost(self,agent):
         # Edges: dictionary  edge -> (real_weight,agents_using_it )

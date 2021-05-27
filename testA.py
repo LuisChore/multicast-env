@@ -2,43 +2,58 @@ from QLearning import QLearning
 import matplotlib.pyplot as plt
 import numpy as np
 
-ALPHA = 0.1
 EPOCHS = 1000
+GAMMA = 1
 
-def test(gamma,eps,file,paths):
+def test(ALPHA,EPS,file,paths):
     QL = QLearning(file,paths_given = paths)
-    Q,costs,iterations,differences = QL.train(GAMMA = gamma, ALPHA = ALPHA,
+    Q,costs,iterations,differences = QL.train(GAMMA = GAMMA, ALPHA = ALPHA,
         epochs = EPOCHS,test = True)
     mean = np.mean(costs) # mean cost
     std = np.std(costs)  # standard deviation cost
 
     iterations_mean = np.mean(iterations)
-    cost_policy,iterations_policy,cost_env = QL.solve(Q,render = False)
-    return cost_policy,iterations_policy,cost_env,mean,std,differences,iterations_mean
+    cost_policy,iterations_policy = QL.solve(Q,render = False)
+    return costs,cost_policy,iterations_policy,mean,std,differences,iterations_mean
 
+def compute_graph(ALPHA,EPS,EPOCHS,file,paths):
+    NUM_ITERATIONS = 100
+    return_values = np.zeros(EPOCHS)
+    QL = QLearning(file,paths_given = paths)
+    for i in range(NUM_ITERATIONS):
+        Q,costs,iterations,differences = QL.train(GAMMA = GAMMA, ALPHA = ALPHA,
+            epochs = EPOCHS,test = True)
+        for j,c in enumerate(costs):
+            temp_value = (return_values[j]  * i  + c ) / (i + 1)
+            return_values[j] = temp_value
+    return return_values
 
 if __name__ == '__main__':
-    eps = [0.1,0.15,0.2]
-    gammas = [0.9,0.95,0.99]
+    # return_values = compute_graph(0.1,0.1,EPOCHS,"Examples/12.10_paths",True)
+    # plt.plot(return_values)
+    # plt.show()
+    eps = [0.1,0.2,0.3]
+    alphas = [0.05,0.10,0.15]
     file_name = "Examples/12.10_paths"
     paths = True
 
     best_cost = float("inf")
-    best_env_cost = None
     best_e = None
     best_g = None
     best_differences = None
     best_iterations = None
+    best_mean = None
+    best_costs = None
     cost_means = []
     labels = []
     cost_std = []
     for e in eps:
-        for g in gammas:
-            R = test(g,e,file_name,paths)
-            cost_policy,it_policy,cost_env,mean,std,differences,it_mean = R
+        for a in alphas:
+            R = test(a,e,file_name,paths)
+            costs,cost_policy,it_policy,mean,std,differences,it_mean = R
             print("---Training---")
             print('Epsilon: ' + '{0:.2f}'.format(e))
-            print('Gamma: ' + '{0:.2f}'.format(g))
+            print('Alpha: ' + '{0:.2f}'.format(a))
             print('Cost Mean: ' + '{0:.2f}'.format(mean))
             print('Iterations Mean: ' + '{0:.2f}'.format(it_mean))
             print("----Following Best Policy----")
@@ -48,28 +63,45 @@ if __name__ == '__main__':
 
             cost_means.append(mean)
             cost_std.append(std)
-            labels.append((e,g))
+            labels.append((e,a))
             if best_cost > cost_policy:
-                best_env_cost = cost_env
+                best_mean = mean
                 best_cost = cost_policy
                 best_iterations = it_policy
                 best_e = e
-                best_g = g
+                best_g = a
                 best_differences = differences
+                best_costs = costs
+            elif best_cost == cost_policy and it_policy< best_iterations:
+                best_cost = cost_policy
+                best_iterations = it_policy
+                best_e = e
+                best_g = a
+                best_mean = mean
+                best_differences = differences
+                best_costs = costs
+            elif best_cost == cost_policy and it_policy == best_iterations and mean < best_mean:
+                best_mean = mean
+                best_cost = cost_policy
+                best_iterations = it_policy
+                best_e = e
+                best_g = a
+                best_differences = differences
+                best_costs = costs
 
     print("Best:")
     print("Cost: " + '{0:.2f}'.format(best_cost))
+    print("Mean: " + '{0:.2f}'.format(best_mean))
     print(f"Iterations: {best_iterations}")
     fig, (ax1, ax2) = plt.subplots(1, 2)
-    fig.suptitle("Eps: {0:.2f}, Gamma: {1:.2f}".format(best_e,best_g) )
+    fig.suptitle("Eps: {0:.2f}, Alpha: {1:.2f}".format(best_e,best_g) )
 
-    ax1.plot(best_differences)
+    ax1.plot(best_costs)
     ax2.scatter(cost_std,cost_means)
-
 
     for i, txt in enumerate(labels):
         form = '({0:.2f},{1:.2f})'.format(txt[0],txt[1])
-        ax2.annotate(form, (cost_std[i], cost_means[i]))
+        ax2.annotate(form, (cost_std[i], cost_means[i]), fontsize = 5)
 
-    ax2.set(xlabel='Standard Deviation', ylabel='Mean Cost')
+    ax2.set(xlabel='Desviación estandar', ylabel='Media del valor de retorno')
     plt.show()

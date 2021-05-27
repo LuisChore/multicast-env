@@ -7,12 +7,12 @@ import numpy as np
 #generate_12_10("Examples/12.10_paths",0.5,5,paths = True)
 class QLearning():
 
-    def __init__(self,file_name,paths_given = False,step_cost = 1000,alpha = 0.9, eps = 0.1):
+    def __init__(self,file_name,paths_given = False,step_cost = 1000 ,beta = 5, eps = 0.1):
         self.paths_given = paths_given
         self.eps = eps
         self.agents,self.source,self.g = set_graph(file_name,paths = paths_given)
         self.env = Environment(self.g,self.agents,self.source,
-            paths_given = self.paths_given,step_cost = step_cost,alpha = alpha)
+            paths_given = self.paths_given,step_cost = step_cost,beta = beta)
         self.ACTION_SPACE_SIZE = len(self.env.edge_list) * 3
 
     def print_paths(self):
@@ -102,4 +102,4 @@ class QLearning():
                 self.env.render()
             cost += r
             iterations += 1
-        return cost,iterations,self.env.total_cost
+        return cost,iterations
