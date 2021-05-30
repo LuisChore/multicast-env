@@ -1,6 +1,7 @@
 from QLearning import QLearning
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
 EPOCHS = 1000
 GAMMA = 1
@@ -17,7 +18,7 @@ def test(ALPHA,EPS,file,paths):
     return costs,cost_policy,iterations_policy,mean,std,differences,iterations_mean
 
 def compute_graph(ALPHA,EPS,EPOCHS,file,paths):
-    NUM_ITERATIONS = 100
+    NUM_ITERATIONS = 2
     return_values = np.zeros(EPOCHS)
     QL = QLearning(file,paths_given = paths)
     for i in range(NUM_ITERATIONS):
@@ -26,17 +27,14 @@ def compute_graph(ALPHA,EPS,EPOCHS,file,paths):
         for j,c in enumerate(costs):
             temp_value = (return_values[j]  * i  + c ) / (i + 1)
             return_values[j] = temp_value
-    return return_values
+    plt.plot(return_values)
+    plt.xlabel('Episodios')
+    plt.ylabel('Retorno')
+    plt.show()
 
-if __name__ == '__main__':
-    # return_values = compute_graph(0.1,0.1,EPOCHS,"Examples/12.10_paths",True)
-    # plt.plot(return_values)
-    # plt.show()
+def std_mean(EPOCHS,file_name,paths):
     eps = [0.1,0.2,0.3]
     alphas = [0.05,0.10,0.15]
-    file_name = "Examples/12.10_paths"
-    paths = True
-
     best_cost = float("inf")
     best_e = None
     best_g = None
@@ -47,20 +45,30 @@ if __name__ == '__main__':
     cost_means = []
     labels = []
     cost_std = []
+    training = {}
+    columns = ['epsilon','alpha','mean_cost','mean_iterations','cost_test','iterations_test']
+    for c in columns:
+        training[c] = []
+
     for e in eps:
         for a in alphas:
             R = test(a,e,file_name,paths)
             costs,cost_policy,it_policy,mean,std,differences,it_mean = R
             print("---Training---")
             print('Epsilon: ' + '{0:.2f}'.format(e))
+            training['epsilon'].append(e)
             print('Alpha: ' + '{0:.2f}'.format(a))
+            training['alpha'].append(a)
             print('Cost Mean: ' + '{0:.2f}'.format(mean))
+            training['mean_cost'].append(mean)
             print('Iterations Mean: ' + '{0:.2f}'.format(it_mean))
+            training['mean_iterations'].append(it_mean)
             print("----Following Best Policy----")
             print("Cost: " + '{0:.2f}'.format(cost_policy))
+            training['cost_test'].append(cost_policy)
             print(f"Iterations: {it_policy}")
+            training['iterations_test'].append(it_policy)
             print("\n")
-
             cost_means.append(mean)
             cost_std.append(std)
             labels.append((e,a))
@@ -89,19 +97,24 @@ if __name__ == '__main__':
                 best_differences = differences
                 best_costs = costs
 
+
+    df = pd.DataFrame(training,columns = columns )
+    df.to_csv(file_name + '.csv',index = False)
+    print(df)
     print("Best:")
     print("Cost: " + '{0:.2f}'.format(best_cost))
     print("Mean: " + '{0:.2f}'.format(best_mean))
     print(f"Iterations: {best_iterations}")
-    fig, (ax1, ax2) = plt.subplots(1, 2)
-    fig.suptitle("Eps: {0:.2f}, Alpha: {1:.2f}".format(best_e,best_g) )
 
-    ax1.plot(best_costs)
-    ax2.scatter(cost_std,cost_means)
-
+    plt.scatter(cost_std,cost_means)
     for i, txt in enumerate(labels):
         form = '({0:.2f},{1:.2f})'.format(txt[0],txt[1])
-        ax2.annotate(form, (cost_std[i], cost_means[i]), fontsize = 5)
+        plt.annotate(form, (cost_std[i], cost_means[i]), fontsize = 8)
 
-    ax2.set(xlabel='Desviación estandar', ylabel='Media del valor de retorno')
+    plt.xlabel('Desviación estandar')
+    plt.ylabel('Media del valor de retorno')
     plt.show()
+
+if __name__ == '__main__':
+    compute_graph(0.1,0.1,EPOCHS,"Examples/12.10_paths",True)
+    #std_mean(EPOCHS,"Examples/12.10_paths",True)
