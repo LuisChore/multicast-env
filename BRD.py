@@ -1,5 +1,6 @@
 '''
-Reinforcement Learning Environment to find a Nash Equilibrium
+Reinforcement  Learning Environment to find a Nash
+        Equilibrium, based in AI GYM envirionments
 '''
 import matplotlib.pyplot as plt
 from matplotlib.widgets import Button

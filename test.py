@@ -2,7 +2,10 @@ from QLearning import QLearning
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import seaborn as sns
 
+# Apply the default theme
+sns.set_theme()
 EPOCHS = 1000
 GAMMA = 1
 
@@ -116,5 +119,5 @@ def std_mean(EPOCHS,file_name,paths):
     plt.show()
 
 if __name__ == '__main__':
-    compute_graph(0.1,0.1,EPOCHS,"Examples/12.10_paths",True)
-    #std_mean(EPOCHS,"Examples/12.10_paths",True)
+    #compute_graph(0.1,0.1,EPOCHS,"Examples/12.9",False)
+    std_mean(EPOCHS,"Examples/12.8a",False)
