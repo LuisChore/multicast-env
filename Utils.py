@@ -1,7 +1,16 @@
+'''
+Library  with  functions  to  help to create graph
+                       examples to test algotithms
+'''
 from Graph import Graph
 from Agent import Agent
 
-#missing evaluation when an agent is in the source
+'''
+it reads a file to create  a Graph object,  object
+required   to   initialize  the  environments  for
+reinforcement  algorithms,  if  the files contains
+original  paths  it has to be indcated in the flag
+'''
 def set_graph(file_name, paths = False):
     f = open(file_name, "r")
     nodes,edges = f.readline().split()
@@ -16,6 +25,11 @@ def set_graph(file_name, paths = False):
             ag.path = list(map(int,f.readline().split()))
     return  agents,source,g
 
+'''
+It  creates a graph with the architecture from the
+example  12.8(b)  from  Tardo's book, eps being an
+                                    user parameter
+'''
 def generate_12_8b(file_name,eps,k):
     f = open(file_name,"w")
     f.write("2 2\n")
@@ -26,6 +40,12 @@ def generate_12_8b(file_name,eps,k):
     f.write("\n")
     f.write("1\n")
 
+'''
+It  creates a graph with the architecture from the
+example 12.10 from Tardo's book, eps being an user
+parameter, for this example customized paths could
+                                  be  proportioned
+'''
 def generate_12_10(file_name,eps,k, paths = False):
     f = open(file_name,"w")
     f.write(str(k + 2) + " " + str(2*k + 1) + "\n")
