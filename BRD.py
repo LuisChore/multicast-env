@@ -12,37 +12,114 @@ import queue
 import copy
 
 class Environment:
+    #graph: Graph Object to describe the environment
+    #agents: List of Agent Objects
+    #beta: hyperparameter for action taking (3 possible actions)
+    #step_cost: hyperparameter for training
+    #paths_given: if True, agents are initialized with a path
+    #             neccesary to know when reseting environment
     def __init__(self,graph,agents,source,beta = 0.99,step_cost = 100,paths_given = False):
-        self.nash_eq = False # done variable
+        self.nash_eq = False # done variable for API
         self.beta = beta # for action values
         self.start = False # to initialize the graphics
-        self.step_cost = step_cost # for the reward
+        self.step_cost = step_cost # for the reward/cost
         self.W,self.H = 12,8
         self.paths_given = paths_given
         colors = ['blue','red','green','orange','cyan','black','pink','magenta']
-        self.cost_by_iteration = []
-        self.total_cost = float("inf")
+        self.cost_by_iteration = [] # ?
+        self.total_cost = float("inf") # ?
+
         # initialize agents
-        self.source = source # node source
+        self.source = source
         self.agents = agents
         iterator = 0
         for ag in self.agents:
             ag.set_color(colors[iterator])
             iterator = (iterator + 1) % len(colors)
 
+        # Need it for reseting the environment
         if paths_given == True:
             self.agents_copy = copy.deepcopy(self.agents)
+
         #initialize graph
         self.graph = graph
         self.graphx = self.create_graph(graph)
         #Edges: dictionary to know how many agents are using every edge
+        #       every edge is mapped to a tuple(w,a), original weight of the
+        #       edge and number of agents using that edge
         self.Edges = self.initialize_edges()
-        #create state (also needed for  BRD altough is always 0)
+        #create state (also needed for  BRD altough is always 0
+        #state: every edge can have three different values
+        #       that determines the modification of its cost
         self.state = [0] * len(list(self.edge_list))
         self.episode_iterations = 0
+        #precompute accumulated harmonic function for potential-function
         self.harmonic = self.process_harmonic(len(agents))
         self.initialize_agents()
 
+    '''
+    It  initializes  all  information for edges, it is
+    only  called  in  the  constructor.  It  saves the
+    edges state (Edges)  and  also  creates  an id for
+                                every edge (edge_dict)
+    '''
+    def initialize_edges(self):
+        Edges = {}
+        self.edge_list = []
+        self.edge_dict = {}
+        it = 0 # the id for the edges
+        for u in range(self.graph.nodes):
+            for v,w in self.graph.adj[u]:
+                i = min(u,v)
+                j = max(u,v)
+                self.edge_dict[(i,j)] = it
+                self.edge_list.append((i,j))
+                Edges[(i,j)] = (w,0)
+                it+=1
+        return Edges
+
+    '''
+    It creates a Graphic Graph using networkx library
+    It   is   used   for   the  API  render  function
+    '''
+    def create_graph(self,graph):
+        G = nx.DiGraph()
+        for i in range(graph.nodes):
+            G.add_node(i)
+        for u in range(graph.nodes):
+            for v,w in graph.adj[u]:
+                G.add_edge(u,v,weight = w)
+        return G
+
+    '''
+    function  to  initialize  agents  in the case they
+    start  with a predetermined path, save the current
+                                  cost of each of them
+    '''
+    def initialize_agents(self):
+        for ag in self.agents:
+            ag.edges_used = {}
+            l = len(ag.path)
+            for i in range(0,l-1):
+                u = min(ag.path[i],ag.path[i + 1])
+                v = max(ag.path[i],ag.path[i + 1])
+                w,h = self.Edges[(u,v)]
+                self.Edges[(u,v)] = (w,h+1)
+                ag.edges_used[(u,v)] = True
+
+        #update costs using the current graph configuration
+        for ag in self.agents:
+            l = len(ag.path)
+            if l > 0 or ag.index == self.source:
+                #if it's in the source it doesn't need a path
+                self.update_agent_cost(ag)#fair cost
+        self.evaluate_totalcost()
+
+
+    '''
+    it   computes   accumulated  harmonic  values  for
+                                    potential function
+    '''
     def process_harmonic(self,n):
         harmonic = [0]
         for i in range(1,n+1):
@@ -52,19 +129,36 @@ class Environment:
             harmonic[i] += harmonic[i-1]
         return harmonic
 
-    # check in BRD potential_function
+    '''
+    It  returns  the  potential  value for the current
+                                          agents state
+    '''
     def potential_function(self):
         value = 0
         for e,(w,c) in self.Edges.items():
             value += w * self.harmonic[c]
         return value
 
-    # given an action, change the edge cost
+    '''
+    The  agent actions can be applied to every edge in
+    the graph, for each edge it could be applied three
+    different  actions. The action space is determined
+            by a natural number between [0, 3*|edges|)
+    '''
     def modify_state(self,action:int):
         edge_index = int(action / 3) # 3 edge operations
         edge_operation = action % 3 # choose operation
         self.state[edge_index] = edge_operation
 
+
+    '''
+    Main   environment   function   for  training,  it
+    recieves   an   action   and  applies  it  to  the
+    environment  chaning  the  state  and returing the
+    cost  of  that  step.  it  also  returns a boolean
+    values  indicatig  if  we  reached  a  final state
+                                    (Nash Equilibrium)
+    '''
     def step(self,action):
         #action integer [0,...,3*|E|-1]
         self.modify_state(action)
@@ -78,6 +172,10 @@ class Environment:
         self.nash_eq = self.is_NE()
         return tuple(self.state),reward,self.nash_eq
 
+    '''
+    it  is  used  in  the  reset function to reset the
+                                      Edges dictionary
+    '''
     def reset_edges(self):
         Edges = {}
         for u in range(self.graph.nodes):
@@ -87,6 +185,13 @@ class Environment:
                 Edges[(i,j)] = (w,0)
         return Edges
 
+    '''
+    Function  used  directly  in  the training, before
+    every  epoch  it  helps  to  reset the environment
+    configuration.   Initial   state   reseted.  Edges
+    dictionary   reseted.  Created  new  random  paths
+    or  if  there  are  original  ones,  reseted  them
+    '''
     def reset(self):
         self.nash_eq = False
         self.episode_iterations = 0
@@ -128,7 +233,7 @@ class Environment:
         if self.nash_eq == True:
             return
         self.episode_iterations += 1
-        np.random.shuffle(self.agents)
+        np.random.shuffle(self.agents) # the order is random
         change = False
         for ag in self.agents:
             find = self.find_path(ag)
@@ -136,10 +241,9 @@ class Environment:
                 change = True
         for ag in self.agents:
             self.update_agent_cost(ag)
-            ag.add_cost()
+            ag.add_cost()#track individual costs
         self.evaluate_totalcost()
-        self.cost_by_iteration.append(self.total_cost)
-
+        self.cost_by_iteration.append(self.total_cost)#track total cost
 
     def reset_agents(self):
         self.cost_by_iteration = []
@@ -150,35 +254,10 @@ class Environment:
             ag.cost_by_iteration = []
         self.evaluate_totalcost()
 
-    # function for simulator (agents already could have paths)
-    def initialize_agents(self):
-        for ag in self.agents:
-            ag.edges_used = {}
-            l = len(ag.path)
-            for i in range(0,l-1):
-                u = min(ag.path[i],ag.path[i + 1])
-                v = max(ag.path[i],ag.path[i + 1])
-                w,h = self.Edges[(u,v)]
-                self.Edges[(u,v)] = (w,h+1)
-                ag.edges_used[(u,v)] = True
-
-        for ag in self.agents:
-            l = len(ag.path)
-            if l > 0 or ag.index == self.source:
-                #if it's in the source it doesn't need a path
-                self.update_agent_cost(ag)
-        self.evaluate_totalcost()
-
-    def create_graph(self,graph):
-        G = nx.DiGraph()
-        for i in range(graph.nodes):
-            G.add_node(i)
-        for u in range(graph.nodes):
-            for v,w in graph.adj[u]:
-                G.add_edge(u,v,weight = w)
-        return G
-
-    #returns the current cost according to the new weights configuration
+    '''
+    According  to the current state of the environment
+    this  function returns the value of the edge given
+    '''
     def current_edge_cost(self,edge):
         w,c = self.Edges[edge]
         index_edge = self.edge_dict[edge]
@@ -186,29 +265,15 @@ class Environment:
             return w
         elif self.state[index_edge] == 1:
             return w + self.beta * w
-        return w -self.beta * w
+        return w - self.beta * w
 
     def update_agent_cost(self,agent):
         # Edges: dictionary  edge -> (real_weight,agents_using_it )
-        # state: envirionment state
         cost = 0
         for e in agent.edges_used:
             w,c = self.Edges[e]
             cost +=  self.current_edge_cost(e)/c
         agent.cost = cost
-
-    def initialize_edges(self):
-        Edges = {}
-        self.edge_list = []
-        self.edge_dict = {}
-        for u in range(self.graph.nodes):
-            for v,w in self.graph.adj[u]:
-                i = min(u,v)
-                j = max(u,v)
-                self.edge_dict[(i,j)] = i
-                self.edge_list.append((i,j))
-                Edges[(i,j)] = (w,0)
-        return Edges
 
     def plot_graph(self):
         plt.ioff()

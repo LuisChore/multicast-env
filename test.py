@@ -120,4 +120,4 @@ def std_mean(EPOCHS,file_name,paths):
 
 if __name__ == '__main__':
     #compute_graph(0.1,0.1,EPOCHS,"Examples/12.9",False)
-    std_mean(EPOCHS,"Examples/12.8a",False)
+    std_mean(EPOCHS,"Examples/12.10_paths",True)
