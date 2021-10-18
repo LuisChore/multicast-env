@@ -13,7 +13,7 @@ class QLearning():
     #step_cost - hyperparameter for QL algorithm
     #beta -hyperparameter for modify the agent actions
     #eps - hyperparameter for customize e-greddy algorithm
-    def __init__(self,file_name,paths_given = False,step_cost = 1000 ,beta = 5, eps = 0.1):
+    def __init__(self,file_name,paths_given = False,step_cost = 5 ,beta = 0.9, eps = 0.1):
         self.paths_given = paths_given
         self.eps = eps
         self.agents,self.source,self.g = set_graph(file_name,paths = paths_given)
@@ -25,9 +25,12 @@ class QLearning():
     It  prints  the current agents paths (for testing)
     '''
     def print_paths(self):
+        print("Paths:")
+        print("-----------------------------------------------------")
         for ag in self.env.agents:
             print(ag.index,end = ":")
             print(ag.path)
+        print("-----------------------------------------------------")
 
 
     '''
@@ -37,13 +40,9 @@ class QLearning():
     '''
     def min_dic(self,Q,state):
         if state in Q:
-            min_value = float('inf')
-            min_key = None
-            for a,v in Q[state].items():
-                if v < min_value:
-                    min_key = a
-                    min_value = v
-            return min_key,min_value
+            min_value = min( Q[state].values())
+            min_keys = [key for key,val in Q[state].items() if val == min_value]
+            return np.random.choice(min_keys),min_value
         return np.random.randint(self.ACTION_SPACE_SIZE),0
 
     def eps_greedy(self,action):
@@ -127,9 +126,13 @@ class QLearning():
     cost  and  the number of iterations, it contains a
                   render mode to visualize the process
     '''
-    def solve(self,Q,render = True):
+    def solve(self,Q,render = True,print_policy = False):
         #FOLLOWING THE BEST POLICY
         s,done = self.env.reset()
+        if print_policy == True:
+            print("Initial State:")
+            self.env.print_state()
+            self.print_paths()
         if render == True:
             self.env.render()
         cost = 0
@@ -137,6 +140,9 @@ class QLearning():
         while not done:
             a,_ = self.min_dic(Q,s)
             s,r,done = self.env.step(a)
+            if print_policy == True:
+                self.env.print_state()
+                self.print_paths()
             if render == True:
                 self.env.render()
             cost += r
