@@ -57,6 +57,15 @@ class Environment:
         self.harmonic = self.process_harmonic(len(agents))
         self.initialize_agents()
 
+
+    def print_state(self):
+        print("State:")
+        print("-----------------------------------------------------")
+        for e in self.edge_list:
+            print(e,end = " -> ")
+            print(self.current_edge_cost(e))
+        print("-----------------------------------------------------")
+
     '''
     It  initializes  all  information for edges, it is
     only  called  in  the  constructor.  It  saves the
@@ -267,6 +276,10 @@ class Environment:
             return w + self.beta * w
         return w - self.beta * w
 
+    '''
+    Agent   cost   given   the current  state  of  the
+                                           environment
+    '''
     def update_agent_cost(self,agent):
         # Edges: dictionary  edge -> (real_weight,agents_using_it )
         cost = 0
@@ -274,6 +287,17 @@ class Environment:
             w,c = self.Edges[e]
             cost +=  self.current_edge_cost(e)/c
         agent.cost = cost
+
+    '''
+    Original agent cost, used for detecting a Nash. Eq.
+    '''
+    def original_agent_cost(self,agent):
+        # Edges: dictionary  edge -> (real_weight,agents_using_it )
+        cost = 0
+        for e in agent.edges_used:
+            w,c = self.Edges[e]
+            cost +=  w/c
+        return cost
 
     def plot_graph(self):
         plt.ioff()
@@ -383,6 +407,7 @@ class Environment:
     def find_path(self,agent,update = True):
         index = agent.index
         prev_cost = agent.cost
+        original_agent_cost = self.original_agent_cost(agent)
         dist = [float("inf") for i in range(self.graph.nodes)]
         parent = [-1 for i in range(self.graph.nodes)]
         dist[self.source] = 0
@@ -403,12 +428,16 @@ class Environment:
                     dist[v] = dist[u] + realcost
                     PQ.put((dist[v],v))
 
-        if dist[index] >= prev_cost:
-            return False
 
         #if we are not updating we only return there is a better option
         if update == False:
+            if dist[index] >= original_agent_cost:
+                return False
             return True
+
+        if dist[index] >= prev_cost:
+            return False
+
         new_path = []
         self.create_path(index,parent,new_path)
         self.update_edges(agent,False)
