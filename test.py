@@ -21,7 +21,7 @@ def test(ALPHA,EPS,file,paths):
     return costs,cost_policy,iterations_policy,mean,std,differences,iterations_mean
 
 def compute_graph(ALPHA,EPS,EPOCHS,file,paths):
-    NUM_ITERATIONS = 2
+    NUM_ITERATIONS = 20
     return_values = np.zeros(EPOCHS)
     QL = QLearning(file,paths_given = paths)
     for i in range(NUM_ITERATIONS):
@@ -119,5 +119,5 @@ def std_mean(EPOCHS,file_name,paths):
     plt.show()
 
 if __name__ == '__main__':
-    #compute_graph(0.1,0.1,EPOCHS,"Examples/12.9",False)
-    std_mean(EPOCHS,"Examples/12.10_paths",True)
+    compute_graph(0.05,0.2,EPOCHS,"Examples/12.9_paths",True)
+    #std_mean(EPOCHS,"Examples/12.10_paths",True)
