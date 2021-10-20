@@ -13,7 +13,7 @@ class QLearning():
     #step_cost - hyperparameter for QL algorithm
     #beta -hyperparameter for modify the agent actions
     #eps - hyperparameter for customize e-greddy algorithm
-    def __init__(self,file_name,paths_given = False,step_cost = 5 ,beta = 0.9, eps = 0.1):
+    def __init__(self,file_name,paths_given = False,step_cost = 5 ,beta = 0.99, eps = 0.1):
         self.paths_given = paths_given
         self.eps = eps
         self.agents,self.source,self.g = set_graph(file_name,paths = paths_given)

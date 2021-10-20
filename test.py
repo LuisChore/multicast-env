@@ -10,7 +10,7 @@ EPOCHS = 1000
 GAMMA = 1
 
 def test(ALPHA,EPS,file,paths):
-    QL = QLearning(file,paths_given = paths)
+    QL = QLearning(file,paths_given = paths,eps = EPS)
     Q,costs,iterations,differences = QL.train(GAMMA = GAMMA, ALPHA = ALPHA,
         epochs = EPOCHS,test = True)
     mean = np.mean(costs) # mean cost
@@ -23,7 +23,7 @@ def test(ALPHA,EPS,file,paths):
 def compute_graph(ALPHA,EPS,EPOCHS,file,paths):
     NUM_ITERATIONS = 20
     return_values = np.zeros(EPOCHS)
-    QL = QLearning(file,paths_given = paths)
+    QL = QLearning(file,paths_given = paths, eps = EPS)
     for i in range(NUM_ITERATIONS):
         Q,costs,iterations,differences = QL.train(GAMMA = GAMMA, ALPHA = ALPHA,
             epochs = EPOCHS,test = True)
@@ -36,18 +36,25 @@ def compute_graph(ALPHA,EPS,EPOCHS,file,paths):
     plt.show()
 
 def std_mean(EPOCHS,file_name,paths):
-    eps = [0.1,0.2,0.3]
-    alphas = [0.05,0.10,0.15]
+    #list of hyperparameters
+    eps = [0.05,0.1,0.15,0.2]
+    alphas = [0.05,0.10,0.15,0.2]
+
+    #variables to save best results
     best_cost = float("inf")
-    best_e = None
-    best_g = None
+    best_eps = None
+    best_alpha = None
     best_differences = None
     best_iterations = None
     best_mean = None
+    best_std = None
     best_costs = None
+
+    #track training process to plot
     cost_means = []
     labels = []
     cost_std = []
+
     training = {}
     columns = ['epsilon','alpha','mean_cost','mean_iterations','cost_test','iterations_test']
     for c in columns:
@@ -57,7 +64,7 @@ def std_mean(EPOCHS,file_name,paths):
         for a in alphas:
             R = test(a,e,file_name,paths)
             costs,cost_policy,it_policy,mean,std,differences,it_mean = R
-            print("---Training---")
+            print("---Training Summary---")
             print('Epsilon: ' + '{0:.2f}'.format(e))
             training['epsilon'].append(e)
             print('Alpha: ' + '{0:.2f}'.format(a))
@@ -77,36 +84,50 @@ def std_mean(EPOCHS,file_name,paths):
             labels.append((e,a))
             if best_cost > cost_policy:
                 best_mean = mean
+                best_std = std
                 best_cost = cost_policy
                 best_iterations = it_policy
-                best_e = e
-                best_g = a
+                best_eps = e
+                best_alpha = a
                 best_differences = differences
                 best_costs = costs
-            elif best_cost == cost_policy and it_policy< best_iterations:
+            elif best_cost == cost_policy and it_policy < best_iterations:
+                best_mean = mean
+                best_std = std
                 best_cost = cost_policy
                 best_iterations = it_policy
-                best_e = e
-                best_g = a
-                best_mean = mean
+                best_eps = e
+                best_alpha = a
                 best_differences = differences
                 best_costs = costs
             elif best_cost == cost_policy and it_policy == best_iterations and mean < best_mean:
                 best_mean = mean
+                best_std = std
                 best_cost = cost_policy
                 best_iterations = it_policy
-                best_e = e
-                best_g = a
+                best_eps = e
+                best_alpha = a
+                best_differences = differences
+                best_costs = costs
+            elif best_cost == cost_policy and it_policy == best_iterations and mean == best_mean and best_std > std:
+                best_mean = mean
+                best_std = std
+                best_cost = cost_policy
+                best_iterations = it_policy
+                best_eps = e
+                best_alpha = a
                 best_differences = differences
                 best_costs = costs
 
-
+    pd.options.display.float_format = "{:,.3f}".format
     df = pd.DataFrame(training,columns = columns )
     df.to_csv(file_name + '.csv',index = False)
     print(df)
-    print("Best:")
+    print("Summary (Best hyperparameters):")
+    print("Epsilon: " + '{0:.2f}'.format(best_eps))
+    print("Alpha: " + '{0:.2f}'.format(best_alpha))
     print("Cost: " + '{0:.2f}'.format(best_cost))
-    print("Mean: " + '{0:.2f}'.format(best_mean))
+    print("Mean Cost: " + '{0:.2f}'.format(best_mean))
     print(f"Iterations: {best_iterations}")
 
     plt.scatter(cost_std,cost_means)
@@ -119,5 +140,5 @@ def std_mean(EPOCHS,file_name,paths):
     plt.show()
 
 if __name__ == '__main__':
-    compute_graph(0.05,0.2,EPOCHS,"Examples/12.9_paths",True)
+    compute_graph(0.2,0.1,EPOCHS,"Examples/12.9_paths",True)
     #std_mean(EPOCHS,"Examples/12.10_paths",True)
