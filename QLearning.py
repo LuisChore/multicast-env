@@ -13,7 +13,7 @@ class QLearning():
     #step_cost - hyperparameter for QL algorithm
     #beta -hyperparameter for modify the agent actions
     #eps - hyperparameter for customize e-greddy algorithm
-    def __init__(self,file_name,paths_given = False,step_cost = 5 ,beta = 0.99, eps = 0.1):
+    def __init__(self,file_name,paths_given = False,step_cost = 20 ,beta = 0.99, eps = 0.1):
         self.paths_given = paths_given
         self.eps = eps
         self.agents,self.source,self.g = set_graph(file_name,paths = paths_given)
@@ -99,15 +99,17 @@ class QLearning():
                 a = self.eps_greedy(a) # chosing action
                 old_q = self.q_value(Q,s,a)  # old Q(s,a) value
                 s2,r,done = self.env.step(a) # take an action
+                #print(s2)
                 a2,minQ = self.min_dic(Q,s2) # best action for the new state
                 TD = r + GAMMA * minQ - old_q # temporal difference
                 Q[s][a] = old_q + ALPHA * TD # update Q value
-
                 # testing updates
                 if test == True:
                     cost_per_run += r
                     iterations_per_run += 1
                     max_diff = max(max_diff,np.abs(Q[s][a] - old_q))
+                s = s2
+                a = a2
 
             # testing updates
             if test == True:
@@ -128,7 +130,12 @@ class QLearning():
     '''
     def solve(self,Q,render = True,print_policy = False):
         #FOLLOWING THE BEST POLICY
-        s,done = self.env.reset()
+
+        print("Policy:\n")
+        print(self.env.edge_list)
+
+
+        state,done = self.env.reset()
         if print_policy == True:
             print("Initial State:")
             self.env.print_state()
@@ -137,9 +144,58 @@ class QLearning():
             self.env.render()
         cost = 0
         iterations = 0
+
+
+
+        print(state)
+        min_value = min( Q[state].values()) if state in Q else -1
+        min_keys = []
+        if min_value != -1:
+            min_keys = [key for key,val in Q[state].items() if val == min_value]
+
+        count_keys_with_no_min_value = self.ACTION_SPACE_SIZE - len(min_keys)
+        general_probability = 1 / count_keys_with_no_min_value if count_keys_with_no_min_value > 0 else 0
+
+        count_keys_with_min_value = len(min_keys)
+        best_probability = (1 - self.eps) / count_keys_with_min_value if count_keys_with_min_value > 0 else 0
+        for action in range(self.ACTION_SPACE_SIZE):
+            edge_index = int(action / 3) # 3 edge operations
+            edge_operation = action % 3 # choose operation
+            print(edge_index,edge_operation, end = ": ")
+            if action in min_keys:
+                print("{:.3f}".format(best_probability))
+            else:
+                print("{:.3f}".format(general_probability))
+
+
         while not done:
-            a,_ = self.min_dic(Q,s)
-            s,r,done = self.env.step(a)
+            a,_ = self.min_dic(Q,state)
+            state,r,done = self.env.step(a)
+
+
+
+            print(state)
+            min_value = min( Q[state].values()) if state in Q else -1
+            min_keys = []
+            if min_value != -1:
+                min_keys = [key for key,val in Q[state].items() if val == min_value]
+
+            count_keys_with_no_min_value = self.ACTION_SPACE_SIZE - len(min_keys)
+            general_probability = 1 / count_keys_with_no_min_value if count_keys_with_no_min_value > 0 else 0
+
+            count_keys_with_min_value = len(min_keys)
+            best_probability = (1 - self.eps) / count_keys_with_min_value if count_keys_with_min_value > 0 else 0
+
+            for action in range(self.ACTION_SPACE_SIZE):
+                edge_index = int(action / 3) # 3 edge operations
+                edge_operation = action % 3 # choose operation
+                print(edge_index,edge_operation, end = ": ")
+                if action in min_keys:
+                    print("{:.3f}".format(best_probability))
+                else:
+                    print("{:.3f}".format(general_probability))
+
+
             if print_policy == True:
                 self.env.print_state()
                 self.print_paths()
@@ -148,3 +204,36 @@ class QLearning():
             cost += r
             iterations += 1
         return cost,iterations
+
+    def print_policy(self,Q):
+        print("Policy:\n")
+        print(self.env.edge_list)
+        count = 0
+        for state in Q.keys():
+            min_value = min( Q[state].values())
+            min_keys = [key for key,val in Q[state].items() if val == min_value]
+
+            count_keys_with_no_min_value = self.ACTION_SPACE_SIZE - len(min_keys)
+            general_probability = 1 / count_keys_with_no_min_value if count_keys_with_no_min_value > 0 else 0
+
+            count_keys_with_min_value = len(min_keys)
+            best_probability = (1 - self.eps) / count_keys_with_min_value if count_keys_with_min_value > 0 else 0
+
+            if count_keys_with_min_value == 0 or count_keys_with_no_min_value == 0:
+                continue
+            print(state)
+            action,_ = self.min_dic(Q,state)
+            edge_index = int(action / 3) # 3 edge operations
+            edge_operation = action % 3 # choose operation
+            print(edge_index,edge_operation)
+            count += 1
+            continue
+            for action in range(self.ACTION_SPACE_SIZE):
+                edge_index = int(action / 3) # 3 edge operations
+                edge_operation = action % 3 # choose operation
+                print(edge_index,edge_operation, end = ": ")
+                if action in min_keys:
+                    print("{:.3f}".format(best_probability))
+                else:
+                    print("{:.3f}".format(general_probability))
+        print(count)

@@ -121,6 +121,8 @@ def std_mean(EPOCHS,file_name,paths):
 
     pd.options.display.float_format = "{:,.3f}".format
     df = pd.DataFrame(training,columns = columns )
+    df['mean_cost'] = df['mean_cost'].round(4)
+    df['cost_test'] = df['cost_test'].round(4)
     df.to_csv(file_name + '.csv',index = False)
     print(df)
     print("Summary (Best hyperparameters):")
@@ -140,5 +142,5 @@ def std_mean(EPOCHS,file_name,paths):
     plt.show()
 
 if __name__ == '__main__':
-    compute_graph(0.2,0.1,EPOCHS,"Examples/12.9_paths",True)
-    #std_mean(EPOCHS,"Examples/12.10_paths",True)
+    #compute_graph(0.2,0.1,EPOCHS,"Examples/12.9_paths",True)
+    std_mean(EPOCHS,"Examples/12.9_paths",True)
